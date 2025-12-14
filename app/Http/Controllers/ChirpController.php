@@ -2,46 +2,64 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Chirp;
 use Illuminate\Http\Request;
 
 class ChirpController extends Controller
 {
     public function index()
         {
-            $chirps = [
-                    [
-                        'author' => 'Jane Doe',
-                        'message' => 'Just deployed my first Laravel app 🚀',
-                        'time' => '5 minutes ago'
-            ],
-
-                    [
-                        'author' => 'John Smith',
-                        'message' => 'Laravel makes development fun again',
-                        'time' => '1 hour ago'       
-                    
-            ],
-
-                    [
-                        'author' => 'Alice Johnson',
-                        'message' => 'Working on something cool with Chirper',
-                        'time' => '3 hours ago'          
+            $chirps = Chirp::with('user')
+            ->latest()
+            ->take(50)
+            ->get();
 
             
-                    ]
-                ];
-
                 return view('home', ['chirps' => $chirps]);
 
         }
 
-        
+    public function store(Request $request)
+    {
+        $validated = $request->validate([
+            'message' => 'required|string|max:255',
+        ]);
+    
+        // Use the authenticated user
+        auth()->user()->chirps()->create($validated);
+    
+        return redirect('/')->with('success', 'Your chirp has been posted!');
+    }
 
 
-        
+
+    public function edit(Chirp $chirp)
+    {
+        $this->authorize('update', $chirp);
+
+        return view('chirps.edit', compact('chirp'));
+    }
+
+    public function update(Request $request, Chirp $chirp)
+    {
+        $this->authorize('update', $chirp);
+    
+        $validated = $request->validate([
+            'message' => 'required|string|max:255',
+        ]);
+    
+        $chirp->update($validated);
+    
+        return redirect('/')->with('success', 'Chirp updated!');
+    }
+
+    public function destroy(Chirp $chirp)
+    {
+        $this->authorize('delete', $chirp);
+    
+        $chirp->delete();
+    
+        return redirect('/')->with('success', 'Chirp deleted!');
+    }
+
 }
-
-
-        
-
-
